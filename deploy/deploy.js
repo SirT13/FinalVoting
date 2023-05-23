@@ -8,11 +8,12 @@ async function main() {
 
     const Votingsystem = await ethers.getContractFactory("VotingSystem")
 
-    const votingsystem = await Votingsystem.deploy({ gasLimit: 5000000 })
+    const votingsystem = await Votingsystem.deploy()
 
     console.log("Contract deployed to:", votingsystem.address)
     console.log("Waiting for transactions to be mined...")
-    await new Promise((resolve) => setTimeout(resolve, 30000)) // wait for 30 seconds
+    // await new Promise((resolve) => setTimeout(resolve, 50000)) // wait for 50 seconds
+    await votingsystem.deployTransaction.wait()
 
     await verify(votingsystem.address)
 }

@@ -3,9 +3,9 @@ pragma solidity ^0.8.6;
 
 
 
-error VotingSystem__NotRegistered();
-error VotingSystem__AlreadyVoted();
-error VotingSystem__VotingPeriodNotFinished(uint256 timeRemaining);
+// error VotingSystem__NotRegistered();
+// error VotingSystem__AlreadyVoted();
+// error VotingSystem__VotingPeriodNotFinished(uint256 timeRemaining);
 
 
 /** @title This contract does the basic proccess of the voting System
@@ -36,7 +36,6 @@ contract VotingSystem {
     struct Candidate {
         uint id;
         uint voteCount;
-        address candidateAd;
         string name;
         string party;
         string ideas;
@@ -70,6 +69,7 @@ contract VotingSystem {
 
     function startVoting(uint256 _votingDuration) public onlyOwner {
         require(votingDuration == 0, "Voting has already started.");
+        require(systemOwner == msg.sender);
         votingDuration = block.timestamp + _votingDuration;
     }
 
@@ -84,9 +84,8 @@ contract VotingSystem {
         uint _authedicationId
     ) public returns (bool, string memory) {
         // require for a check of authentication of the id
-
+        // require(votingDuration !== 0)
         require(!Voters[msg.sender].registeredVoter);
-        // require(Voters[msg.sender].authedicationId = 0 , "Voter already registered");
         Voters[msg.sender] = Voter(
             _authedicationId,
             0,
@@ -109,7 +108,7 @@ contract VotingSystem {
       * @dev .....
       * @param _name of the candidate, the _party that he takes part in @ _ideas that he/she believes.
       * @return true if the candidate registered succesfully.
-     */
+    */
 
 
 
@@ -117,21 +116,23 @@ contract VotingSystem {
         string memory _name,
         string memory _party,
         string memory _ideas
-    ) public onlyOwner returns (bool, string memory) {
-        candiId++;
-        require(Candidates[candiId].id == 0);
+    ) 
+    public onlyOwner returns (bool, string memory) {
+       
+        require(Candidates[candiId ].id == 0);
+         
         Candidates[candiId] = Candidate(
             candiId,
             0,
-            msg.sender,
             _name,
             _party,
             _ideas,
             true
         );
+        candiId++;
         emit CandidateRegistered(_name);
         return (
-            Candidates[candiId].registeredCandidate,
+            Candidates[candiId -1 ].registeredCandidate,
             "You sucessfully registered"
         );
     }
@@ -149,15 +150,17 @@ contract VotingSystem {
     /** @notice This function does the process of the voting from the voter.
       * @dev .....
       * @param  _id the id of the candidate that the voter wants to vote.
-     */
+    */
 
     function vote(uint _id) public isVotingOpen {
-       require(Voters[msg.sender].registeredVoter); // gas limitation
+        require(Voters[msg.sender].registeredVoter); 
         
-       require(!Voters[msg.sender].voted, "You already voted");
+        require(!Voters[msg.sender].voted, "You already voted");
         
+        require(_id >= 0 && _id <= candiId);
+        
+        require(votingDuration !=0);
 
-        require(_id > 0 && _id <= candiId);
         Voters[msg.sender].votedCandidate = _id;
         Candidates[_id].voteCount++;
         Voters[msg.sender].voted = true;
@@ -166,40 +169,47 @@ contract VotingSystem {
 
     /** @notice This function ending the voting process after the time passes.
       * @dev .....
-     */
+    */
 
 
     function endVoting() public onlyOwner {
-       // require(block.timestamp >= votingDuration, "Voting has not ended yet.");
-        if(block.timestamp < votingDuration){
-            uint timeRemaining = votingDuration - block.timestamp;
-            revert VotingSystem__VotingPeriodNotFinished( timeRemaining);
-        }
+        require(block.timestamp >= votingDuration, "Voting has not ended yet.");
 
         votingDuration = 0;
         emit VotingEnded();
     }
 
     /** @notice This function gives the result of the voting .
-      * @dev .....
-      * @return  names voteCounts of the winner of the elections.
-     */
+        * @dev .....
+        * @return  names voteCounts of the winner of the elections.
+    */    
 
     function getResults()
         public
         view
-        returns (string[] memory names, uint[] memory voteCounts)
-    {
+        returns (string[] memory names, uint[] memory voteCounts, string memory){
         require(block.timestamp > votingDuration);
         names = new string[](candiId);
         voteCounts = new uint[](candiId);
-        for (uint i = 1; i <= candiId; i++) {
-            names[i - 1] = Candidates[i].name;
-            voteCounts[i - 1] = Candidates[i].voteCount;
-        }
+            for (uint i = 1; i <= candiId; i++) {
+                names[i - 1] = Candidates[i - 1].name;
+                voteCounts[i - 1] = Candidates[i - 1].voteCount;
+            }
+            uint winner;
+            uint max = voteCounts[0];
+            for (uint i = 0; i < voteCounts.length; i++){
+                if(voteCounts[i] > max){
+                    max = voteCounts[i];
+                    winner = i;
+                }
+            }
+            bytes memory winnerNameBytes = bytes(names[winner]);
+            bytes memory winnerMessageBytes = " is the winner";
+            string memory winnerMessage = string(abi.encodePacked(winnerNameBytes, winnerMessageBytes));
 
-        return (names, voteCounts);
-    }
+        return (names, voteCounts, winnerMessage);
+    }  
+    
 
     
 }

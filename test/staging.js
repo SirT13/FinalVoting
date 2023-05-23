@@ -48,3 +48,64 @@
 //         expect(candidate.voteCount).to.equal(2)
 //     })
 // })
+
+const { expect } = require("chai")
+
+describe("VotingSystem", function () {
+    let VotingSystem
+    let votingSystem
+    let owner
+    let addr1
+    let addr2
+    let addrs
+
+    beforeEach(async function () {
+        VotingSystem = await ethers.getContractFactory("VotingSystem")
+        ;[owner, addr1, addr2, ...addrs] = await ethers.getSigners()
+        votingSystem = await VotingSystem.deploy()
+    })
+
+    describe("Deployment", function () {
+        it("Should set the right owner", async function () {
+            expect(await votingSystem.systemOwner()).to.equal(owner.address)
+        })
+    })
+
+    describe("Transactions", function () {
+        it("Should register a voter", async function () {
+            await votingSystem.connect(addr1).registerVoter("Alice", 123)
+            const voter = await votingSystem.Voters(addr1.address)
+            expect(voter.registeredVoter).to.equal(true)
+            expect(voter.name).to.equal("Alice")
+            expect(voter.authedicationId).to.equal(123)
+        })
+
+        // Add similar tests for other functions in the contract.
+    })
+
+    describe("Voting process", function () {
+        it("Should allow for a full voting process", async function () {
+            // owner starts the voting
+            await votingSystem.startVoting(7) // 24 hours
+
+            // Register a candidate
+            await votingSystem.registerCandidate("Candidate1", "Party1", "Ideas1")
+
+            // Register voters
+            await votingSystem.connect(addr1).registerVoter("Alice", 123)
+            await votingSystem.connect(addr2).registerVoter("Bob", 456)
+
+            // Voters cast their votes
+            await votingSystem.connect(addr1).vote(0)
+            await votingSystem.connect(addr2).vote(0)
+
+            // Simulate the end of the voting period by using ethers.provider.send(...)
+            // Due to the current limitation of Hardhat, this needs to be simulated manually
+
+            // Check the result
+            const [names, voteCounts] = await votingSystem.getResults()
+            expect(names[0]).to.equal("Candidate1")
+            expect(voteCounts[0]).to.equal(2)
+        })
+    })
+})
