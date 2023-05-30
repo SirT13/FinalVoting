@@ -12,8 +12,8 @@ async function main() {
 
     console.log("Contract deployed to:", votingsystem.address)
     console.log("Waiting for transactions to be mined...")
-    // await new Promise((resolve) => setTimeout(resolve, 50000)) // wait for 50 seconds
-    await votingsystem.deployTransaction.wait()
+    await new Promise((resolve) => setTimeout(resolve, 50000)) // wait for 50 seconds
+    // await votingsystem.deployTransaction.wait()
 
     await verify(votingsystem.address)
 }
